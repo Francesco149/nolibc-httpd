@@ -5,34 +5,37 @@
 /*                           ^^^         */
 /* stack grows from a high address to a low address */
 
-.global _syscall
-_syscall:
-  mov r10,rcx
-  syscall
-  ret
-
 #define c(x, n) \
 .global x; \
 x:; \
-  mov eax,n; \
-  jmp _syscall
+  add r9,n
 
-c(read, 0)
-c(write, 1)
-c(open, 2)
-c(close, 3)
-c(socket, 41)
-c(accept, 43)
-c(shutdown, 48)
-c(bind, 49)
-c(listen, 50)
-c(setsockopt, 54)
-c(fork, 57)
-c(exit, 60)
+c(exit, 3)       /* 60 */
+c(fork, 3)       /* 57 */
+c(setsockopt, 4) /* 54 */
+c(listen, 1)     /* 50 */
+c(bind, 1)       /* 49 */
+c(shutdown, 5)   /* 48 */
+c(accept, 2)     /* 43 */
+c(socket, 38)    /* 41 */
+c(close, 1)      /* 03 */
+c(open, 1)       /* 02 */
+c(write, 1)      /* 01 */
+.global read     /* 00 */
+read:
+
+.global _syscall
+_syscall:
+  mov r10,rcx
+  mov rax,r9
+  xor r9,r9
+  syscall
+  ret
 
 .global _start
 _start:
   xor rbp,rbp
+  xor r9,r9
   pop rdi     /* argc */
   mov rsi,rsp /* argv */
   call main
