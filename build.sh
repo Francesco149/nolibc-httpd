@@ -16,4 +16,4 @@ gcc \
   -Wl,--build-id=none \
   start.S httpd.c \
   -o httpd &&
-strip -R .comment -R .bss httpd
+strip -R .comment httpd

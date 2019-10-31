@@ -23,9 +23,6 @@ c(open, 1)       /* 02 */
 c(write, 1)      /* 01 */
 .global read     /* 00 */
 read:
-
-.global _syscall
-_syscall:
   mov r10,rcx
   mov rax,r9
   xor r9,r9
