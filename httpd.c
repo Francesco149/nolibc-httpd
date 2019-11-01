@@ -35,10 +35,6 @@ int setsockopt(int socket, int level, int option_name, const void *option_value,
 int fork();
 void exit(int status);
 
-/* this is fine because forked processes are copy on write */
-/* so there shouldn't be any data races */
-static char http_buf[8192];
-
 static size_t strlen(const char *s) {
   const char *p = s;
   while (*p)
@@ -78,22 +74,20 @@ static uint16_t swap_uint16(uint16_t x) {
 #define perror(s)
 #endif
 
-static int tcp_listen(int port) {
-  static int yes = 1;
-  static sockaddr_in_t addr = {AF_INET};
-  addr.sin_port = swap_uint16(port);
+int tcp_listen(const sockaddr_in_t *addr, const void *option_value,
+               socklen_t option_len) {
   int sock;
   if ((sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0 ||
-      setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) ||
-      bind(sock, &addr, sizeof(addr)) || listen(sock, 10)) {
+      setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, option_value, option_len) ||
+      bind(sock, addr, sizeof(sockaddr_in_t)) || listen(sock, 10)) {
     die("listen");
   }
   return sock;
 }
 
-static void http_consume(int clientfd) {
+static void http_consume(int clientfd, char *http_buf, size_t buf_len) {
   int n;
-  while ((n = read(clientfd, http_buf, sizeof(http_buf))) > 0) {
+  while ((n = read(clientfd, http_buf, buf_len)) > 0) {
     printn(http_buf, n);
     const char *p = http_buf + (n - 3);
     if (n < 3 || (*p == '\n' && *(p + 1) == '\r' && *(p + 2) == '\n')) {
@@ -125,16 +119,17 @@ static void http_drop(int clientfd) {
 
 #define http_code(fd, x) fprintl(fd, "HTTP/1.1 " x "\r\n\r\n" x);
 
-static int http_serve(int clientfd, const char *file_path) {
+static int http_serve(int clientfd, const char *file_path, char *http_buf,
+                      size_t buf_len) {
   int f, n;
-  http_consume(clientfd);
+  http_consume(clientfd, http_buf, buf_len);
   if ((f = open(file_path, O_RDONLY)) < 0) {
     perror("open");
     http_code(clientfd, "404 Not Found");
     return 1;
   }
   fprintl(clientfd, "HTTP/1.1 200 OK\r\n\r\n");
-  while ((n = read(f, http_buf, sizeof(http_buf))) > 0) {
+  while ((n = read(f, http_buf, buf_len)) > 0) {
     if (write(clientfd, http_buf, n) < 0) {
       perror("write");
       return 1;
@@ -155,7 +150,7 @@ static uint16_t string2port(const char *s) {
     }
     res = res * 10 + *s - '0';
   }
-  return res;
+  return swap_uint16(res);
 }
 
 static void usage(const char *self) {
@@ -168,10 +163,13 @@ static void usage(const char *self) {
 int main(int argc, char *argv[]) {
   int sock;
   uint16_t port;
+  char http_buf[8192];
   if (argc != 3 || (port = string2port(argv[1])) == 0) {
     usage(argv[0]);
   }
-  sock = tcp_listen(port);
+  const int yes = 1;
+  const sockaddr_in_t addr = {AF_INET, port, 0};
+  sock = tcp_listen(&addr, &yes, sizeof(yes));
   while (1) {
     int pid, clientfd;
     if ((clientfd = accept(sock, 0, 0)) < 0) {
@@ -179,7 +177,7 @@ int main(int argc, char *argv[]) {
     } else if ((pid = fork()) < 0) {
       perror("fork");
     } else if (pid == 0) {
-      return http_serve(clientfd, argv[2]);
+      return http_serve(clientfd, argv[2], http_buf, sizeof(http_buf));
     }
   }
   return 0;
