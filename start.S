@@ -14,8 +14,7 @@ c(exit, 3)       /* 60 */
 c(fork, 3)       /* 57 */
 c(setsockopt, 4) /* 54 */
 c(listen, 1)     /* 50 */
-c(bind, 1)       /* 49 */
-c(shutdown, 5)   /* 48 */
+c(bind, 6)       /* 49 */
 c(accept, 2)     /* 43 */
 c(socket, 38)    /* 41 */
 c(close, 1)      /* 03 */
