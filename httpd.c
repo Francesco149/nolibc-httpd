@@ -3,7 +3,6 @@
 #define IPPROTO_TCP 6
 #define SO_REUSEADDR 2
 #define SOL_SOCKET 1
-#define SHUT_RDWR 2
 #define O_RDONLY 0
 
 typedef unsigned short uint16_t;
@@ -27,7 +26,6 @@ int close(int fd);
 int socket(int domain, int type, int protocol);
 int accept(int socket, sockaddr_in_t *restrict address,
            socklen_t *restrict address_len);
-int shutdown(int socket, int how);
 int bind(int socket, const sockaddr_in_t *address, socklen_t address_len);
 int listen(int socket, int backlog);
 int setsockopt(int socket, int level, int option_name, const void *option_value,
@@ -99,11 +97,6 @@ static void http_consume(int clientfd, char *http_buf, size_t buf_len) {
   }
 }
 
-static void http_drop(int clientfd) {
-  shutdown(clientfd, SHUT_RDWR);
-  close(clientfd);
-}
-
 /*
  * we're supposed to send content-length but shutting down the
  * socket seems to be enough, saves some code
@@ -138,7 +131,6 @@ static int http_serve(int clientfd, const char *file_path, char *http_buf,
   if (n < 0) {
     perror("read");
   }
-  http_drop(clientfd);
   return 0;
 }
 
@@ -179,6 +171,7 @@ int main(int argc, char *argv[]) {
     } else if (pid == 0) {
       return http_serve(clientfd, argv[2], http_buf, sizeof(http_buf));
     }
+    close(clientfd);
   }
   return 0;
 }
