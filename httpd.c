@@ -4,6 +4,7 @@
 #define SO_REUSEADDR 2
 #define SOL_SOCKET 1
 #define O_RDONLY 0
+#define WNOHANG 1
 
 typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
@@ -19,6 +20,8 @@ typedef struct {
   char sin_zero[8];    /* 16 */
 } sockaddr_in_t;
 
+struct rusage;
+
 ssize_t read(int fd, void *buf, size_t nbyte);
 ssize_t write(int fd, const void *buf, size_t nbyte);
 int open(const char *path, int flags);
@@ -31,6 +34,7 @@ int listen(int socket, int backlog);
 int setsockopt(int socket, int level, int option_name, const void *option_value,
                socklen_t option_len);
 int fork();
+int wait4(int pid, int *wstatus, int options, struct rusage *rusage);
 void exit(int status);
 
 static size_t strlen(const char *s) {
@@ -164,6 +168,7 @@ int main(int argc, char *argv[]) {
   sock = tcp_listen(&addr, &yes, sizeof(yes));
   while (1) {
     int pid, clientfd;
+    while (wait4(-1, 0, WNOHANG, 0) > 0);
     if ((clientfd = accept(sock, 0, 0)) < 0) {
       perror("accept");
     } else if ((pid = fork()) < 0) {

@@ -10,6 +10,7 @@
 x:; \
   add r9,n
 
+c(wait4, 1)      /* 61 */
 c(exit, 3)       /* 60 */
 c(fork, 3)       /* 57 */
 c(setsockopt, 4) /* 54 */
