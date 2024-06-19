@@ -1,4 +1,6 @@
-; elf header see http://muppetlabs.com/~breadbox/software/tiny/teensy.html
+; - code disassembled from C executable with `objconv -fnasm httpd temp.asm`
+; - tweaked by prepending _start to _001 and removing the exit call
+; - tiny elf header see http://muppetlabs.com/~breadbox/software/tiny/teensy.html
 
 BITS 64
 
@@ -40,12 +42,14 @@ _start:
         xor     r9, r9
         pop     rdi
         mov     rsi, rsp
+
+?_001:
         push    r14
         push    r13
         push    r12
+        mov     r12, rsi
         push    rbp
         push    rbx
-        mov     rbx, rsi
         sub     rsp, 8224
         cmp     edi, 3
         jnz     ?_004
@@ -62,22 +66,23 @@ _start:
         lea     eax, [rax+rdx-30H]
         jmp     ?_002
 
-?_003:  xchg    al, ah
+?_003:  mov     edx, eax
+        xchg    dl, dh
         test    ax, ax
         jnz     ?_007
-?_004:  mov     rbp, qword [rbx]
+?_004:  mov     rbx, qword [r12]
         mov     edx, 7
         mov     edi, 1
         lea     rsi, [rel ?_033]
         call    ?_027
-        mov     rdx, rbp
+        mov     rdx, rbx
 ?_005:  cmp     byte [rdx], 0
         jz      ?_006
         inc     rdx
         jmp     ?_005
 
-?_006:  sub     rdx, rbp
-        mov     rsi, rbp
+?_006:  sub     edx, ebx
+        mov     rsi, rbx
         mov     edi, 1
         call    ?_027
         mov     edx, 11
@@ -85,109 +90,118 @@ _start:
         lea     rsi, [rel ?_034]
         call    ?_027
         mov     edi, 1
-        call    ?_017
+        call    ?_018
+        xor     edx, edx
+?_007:  mov     word [rsp+12H], dx
         xor     eax, eax
-?_007:  xorps   xmm0, xmm0
+        xor     ecx, ecx
         lea     rsi, [rsp+0CH]
         lea     rdi, [rsp+10H]
         mov     edx, 4
-        movups  oword [rsp+10H], xmm0
+        mov     qword [rsp+14H], rax
         mov     dword [rsp+0CH], 1
+        mov     dword [rsp+1CH], ecx
+
         mov     word [rsp+10H], 2
-        mov     word [rsp+12H], ax
         call    ?_029
         mov     r13d, eax
-?_008:  xor     edx, edx
+?_008:  xor     ecx, ecx
+        xor     esi, esi
+        or      edi, 0FFFFFFFFH
+        mov     edx, 1
+        call    ?_017
+        test    eax, eax
+        jg      ?_008
+        xor     edx, edx
         xor     esi, esi
         mov     edi, r13d
         call    ?_023
+        mov     ebx, eax
+        test    eax, eax
+        js      ?_015
+        xor     eax, eax
+        call    ?_019
         mov     ebp, eax
         test    eax, eax
-        js      ?_008
-        xor     eax, eax
-        call    ?_018
-        mov     r12d, eax
-        test    eax, eax
-        jnz     ?_008
-        mov     r14, qword [rbx+10H]
-        lea     r13, [rsp+20H]
+        jne     ?_015
+        mov     r13, qword [r12+10H]
+        lea     r12, [rsp+20H]
 ?_009:  mov     edx, 8192
-        mov     rsi, r13
-        mov     edi, ebp
+        mov     rsi, r12
+        mov     edi, ebx
         call    ?_028
-        mov     ebx, eax
+        mov     r14d, eax
         test    eax, eax
         jle     ?_010
-        mov     edx, ebx
-        mov     rsi, r13
+        mov     edx, r14d
+        mov     rsi, r12
         mov     edi, 1
         call    ?_027
-        movsxd  rax, ebx
-        lea     rax, [r13+rax-3H]
-        cmp     ebx, 2
+        lea     edx, [r14-3H]
+        movsxd  rdx, edx
+        add     rdx, r12
+        cmp     r14d, 2
         jg      ?_011
-?_010:  xor     esi, esi
-        mov     rdi, r14
+?_010:  mov     rdi, r13
+        xor     esi, esi
         call    ?_026
-        mov     ebx, eax
+        mov     r13d, eax
         test    eax, eax
         jns     ?_012
         mov     edx, 39
         lea     rsi, [rel ?_035]
-        mov     edi, ebp
+        mov     edi, ebx
         call    ?_027
-        jmp     ?_015
+        jmp     ?_014
 
-?_011:  cmp     byte [rax], 10
+?_011:  cmp     byte [rdx], 10
         jnz     ?_009
-        cmp     byte [rax+1H], 13
+        cmp     byte [rdx+1H], 13
         jnz     ?_009
-        cmp     byte [rax+2H], 10
+        cmp     byte [rdx+2H], 10
         jnz     ?_009
         jmp     ?_010
 
 ?_012:  mov     edx, 19
         lea     rsi, [rel ?_036]
-        mov     edi, ebp
+        mov     edi, ebx
         call    ?_027
 ?_013:  mov     edx, 8192
-        mov     rsi, r13
-        mov     edi, ebx
+        mov     rsi, r12
+        mov     edi, r13d
         call    ?_028
         mov     edx, eax
         test    eax, eax
-        jle     ?_014
-        mov     rsi, r13
-        mov     edi, ebp
+        jle     ?_016
+        mov     rsi, r12
+        mov     edi, ebx
         call    ?_027
         test    eax, eax
         jns     ?_013
-        jmp     ?_015
-
-?_014:  mov     edi, ebp
-        mov     esi, 2
-        call    ?_022
-        mov     edi, ebp
-        call    ?_025
+?_014:  mov     ebp, 1
         jmp     ?_016
 
-?_015:  mov     r12d, 1
-?_016:  add     rsp, 8224
-        mov     eax, r12d
+?_015:  mov     edi, ebx
+        call    ?_025
+        jmp     ?_008
+
+?_016:
+        add     rsp, 8224
+        mov     eax, ebp
         pop     rbx
         pop     rbp
         pop     r12
         pop     r13
         pop     r14
-        call    ?_017
+        ret
 
 ?_017:
-        add     r9, 3
+        add     r9, 1
 ?_018:  add     r9, 3
-?_019:  add     r9, 4
-?_020:  add     r9, 1
+?_019:  add     r9, 3
+?_020:  add     r9, 4
 ?_021:  add     r9, 1
-?_022:  add     r9, 5
+?_022:  add     r9, 6
 ?_023:  add     r9, 2
 ?_024:  add     r9, 38
 ?_025:  add     r9, 1
@@ -199,50 +213,49 @@ _start:
         syscall
         ret
 
-
 ?_029:
-        push    r13
-        mov     r13, rsi
-        mov     esi, 1
         push    r12
+        mov     r12, rsi
+        mov     esi, 1
         push    rbp
         mov     rbp, rdi
         mov     edi, 2
+        push    rbx
         sub     rsp, 16
         mov     dword [rsp+0CH], edx
         mov     edx, 6
         call    ?_024
         mov     r8d, dword [rsp+0CH]
         test    eax, eax
-        mov     r12d, eax
+        mov     ebx, eax
         jns     ?_031
 ?_030:  mov     edi, 1
-        call    ?_017
+        call    ?_018
         jmp     ?_032
 
-?_031:  mov     rcx, r13
+?_031:  mov     rcx, r12
         mov     edx, 2
         mov     esi, 1
         mov     edi, eax
-        call    ?_019
+        call    ?_020
         test    eax, eax
         jnz     ?_030
         mov     edx, 16
         mov     rsi, rbp
-        mov     edi, r12d
-        call    ?_021
+        mov     edi, ebx
+        call    ?_022
         test    eax, eax
         jnz     ?_030
         mov     esi, 10
-        mov     edi, r12d
-        call    ?_020
+        mov     edi, ebx
+        call    ?_021
         test    eax, eax
         jnz     ?_030
 ?_032:  add     rsp, 16
-        mov     eax, r12d
+        mov     eax, ebx
+        pop     rbx
         pop     rbp
         pop     r12
-        pop     r13
         ret
 
 ?_035:
