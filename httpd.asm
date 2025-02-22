@@ -261,10 +261,10 @@ _start:
 ?_035:
         db "HTTP/1.1 404 Not Found"
         db 0DH, 0AH, 0DH, 0AH
-        db "404 Not Found", 0
+        db "404 Not Found"
 
 ?_036:
         db "HTTP/1.1 200 OK"
-        db 0DH, 0AH, 0DH, 0AH, 0
+        db 0DH, 0AH, 0DH, 0AH
 
 filesize      equ     $ - $$
